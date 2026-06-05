@@ -1,0 +1,231 @@
+{
+  "info": {
+    "name": "Gestão Financeira API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000"
+    },
+    {
+      "key": "incomeCategoryId",
+      "value": ""
+    },
+    {
+      "key": "healthCategoryId",
+      "value": ""
+    },
+    {
+      "key": "transactionId",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "Health-check",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('API saudável', function () {",
+              "  pm.response.to.have.status(200);",
+              "  pm.expect(pm.response.json()).to.deep.include({ ok: true, name: 'gestao-financeira-api' });",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Listar categorias",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/categories"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Lista categorias padrão', function () {",
+              "  pm.response.to.have.status(200);",
+              "  const categories = pm.response.json();",
+              "  pm.expect(categories.length).to.be.at.least(5);",
+              "  const income = categories.find((category) => category.name === 'income');",
+              "  pm.expect(income).to.exist;",
+              "  pm.collectionVariables.set('incomeCategoryId', income.id);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Criar categoria",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"health\",\n  \"displayName\": \"Saúde\",\n  \"icon\": \"favorite\",\n  \"background\": \"#FFB6B6\",\n  \"isIncome\": false\n}"
+        },
+        "url": "{{baseUrl}}/categories"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Categoria criada', function () {",
+              "  pm.response.to.have.status(201);",
+              "  const category = pm.response.json();",
+              "  pm.expect(category).to.have.property('id');",
+              "  pm.collectionVariables.set('healthCategoryId', category.id);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Atualizar categoria",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{ \"displayName\": \"Saúde e Bem-estar\" }"
+        },
+        "url": "{{baseUrl}}/categories/{{healthCategoryId}}"
+      }
+    },
+    {
+      "name": "Excluir categoria customizada",
+      "request": {
+        "method": "DELETE",
+        "url": "{{baseUrl}}/categories/{{healthCategoryId}}"
+      }
+    },
+    {
+      "name": "Validar bloqueio categoria padrão",
+      "request": {
+        "method": "DELETE",
+        "url": "{{baseUrl}}/categories/{{incomeCategoryId}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Não exclui categoria padrão', function () {",
+              "  pm.response.to.have.status(400);",
+              "  pm.expect(pm.response.json().error).to.equal('Categorias padrão não podem ser excluídas');",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Criar transação",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"description\": \"Salário de outubro\",\n  \"value\": 3500.50,\n  \"date\": \"2026-04-29\",\n  \"categoryId\": \"{{incomeCategoryId}}\"\n}"
+        },
+        "url": "{{baseUrl}}/transactions"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Transação criada com categoria', function () {",
+              "  pm.response.to.have.status(201);",
+              "  const transaction = pm.response.json();",
+              "  pm.expect(transaction).to.have.property('category');",
+              "  pm.collectionVariables.set('transactionId', transaction.id);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Listar transações",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/transactions"
+      }
+    },
+    {
+      "name": "Listar transações por mês e ano",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/transactions?month=4&year=2026"
+      }
+    },
+    {
+      "name": "Excluir transação",
+      "request": {
+        "method": "DELETE",
+        "url": "{{baseUrl}}/transactions/{{transactionId}}"
+      }
+    },
+    {
+      "name": "Validar erro Zod",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{ \"description\": \"\" }"
+        },
+        "url": "{{baseUrl}}/transactions"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Zod bloqueia entrada inválida', function () {",
+              "  pm.response.to.have.status(400);",
+              "  const body = pm.response.json();",
+              "  pm.expect(body.error).to.equal('Dados inválidos');",
+              "  pm.expect(body.details).to.be.an('array');",
+              "});"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}
