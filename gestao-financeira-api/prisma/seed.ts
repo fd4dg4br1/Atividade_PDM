@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client';
+import bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
 
@@ -46,6 +47,21 @@ const categories = [
 ];
 
 async function main() {
+  const passwordHash = await bcrypt.hash('123456', 10);
+
+  await prisma.user.upsert({
+    where: { email: 'aluno@pdm.com' },
+    update: {
+      name: 'Gabriel',
+      passwordHash,
+    },
+    create: {
+      name: 'Gabriel',
+      email: 'aluno@pdm.com',
+      passwordHash,
+    },
+  });
+
   for (const category of categories) {
     await prisma.category.upsert({
       where: { name: category.name },

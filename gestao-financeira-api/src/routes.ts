@@ -1,11 +1,15 @@
 import { Prisma } from '@prisma/client';
+import bcrypt from 'bcryptjs';
 import { Router } from 'express';
+import jwt from 'jsonwebtoken';
 import { ZodError } from 'zod';
 
+import { authenticate, getJwtSecret } from './auth';
 import { prisma } from './prisma';
 import {
   createCategorySchema,
   createTransactionSchema,
+  loginSchema,
   updateCategorySchema,
   updateTransactionSchema,
 } from './schemas';
@@ -37,6 +41,45 @@ function validationError(error: ZodError) {
 routes.get('/', (_request, response) => {
   response.json({ ok: true, name: 'gestao-financeira-api' });
 });
+
+routes.post('/auth/login', async (request, response) => {
+  const parsed = loginSchema.safeParse(request.body);
+
+  if (!parsed.success) {
+    response.status(400).json(validationError(parsed.error));
+    return;
+  }
+
+  const user = await prisma.user.findUnique({
+    where: { email: parsed.data.email },
+  });
+
+  if (!user) {
+    response.status(401).json({ error: 'Email ou senha inválidos' });
+    return;
+  }
+
+  const passwordMatches = await bcrypt.compare(parsed.data.password, user.passwordHash);
+
+  if (!passwordMatches) {
+    response.status(401).json({ error: 'Email ou senha inválidos' });
+    return;
+  }
+
+  const publicUser = {
+    id: user.id,
+    name: user.name,
+    email: user.email,
+  };
+  const token = jwt.sign(publicUser, getJwtSecret(), { expiresIn: '8h' });
+
+  response.json({
+    token,
+    user: publicUser,
+  });
+});
+
+routes.use(authenticate);
 
 routes.get('/categories', async (_request, response) => {
   const categories = await prisma.category.findMany({
@@ -110,9 +153,18 @@ routes.delete('/categories/:id', async (request, response) => {
     return;
   }
 
-  await prisma.category.delete({
-    where: { id: request.params.id },
-  });
+  try {
+    await prisma.category.delete({
+      where: { id: request.params.id },
+    });
+  } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2003') {
+      response.status(400).json({ error: 'Categoria possui transações vinculadas' });
+      return;
+    }
+
+    throw error;
+  }
 
   response.status(204).send();
 });

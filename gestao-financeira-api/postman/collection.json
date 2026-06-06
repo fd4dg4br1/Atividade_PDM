@@ -9,6 +9,10 @@
       "value": "http://localhost:3000"
     },
     {
+      "key": "authToken",
+      "value": ""
+    },
+    {
       "key": "incomeCategoryId",
       "value": ""
     },
@@ -21,10 +25,23 @@
       "value": ""
     }
   ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{authToken}}",
+        "type": "string"
+      }
+    ]
+  },
   "item": [
     {
       "name": "Health-check",
       "request": {
+        "auth": {
+          "type": "noauth"
+        },
         "method": "GET",
         "url": "{{baseUrl}}/"
       },
@@ -36,6 +53,42 @@
               "pm.test('API saudável', function () {",
               "  pm.response.to.have.status(200);",
               "  pm.expect(pm.response.json()).to.deep.include({ ok: true, name: 'gestao-financeira-api' });",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Login",
+      "request": {
+        "auth": {
+          "type": "noauth"
+        },
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"aluno@pdm.com\",\n  \"password\": \"123456\"\n}"
+        },
+        "url": "{{baseUrl}}/auth/login"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Login retorna token', function () {",
+              "  pm.response.to.have.status(200);",
+              "  const body = pm.response.json();",
+              "  pm.expect(body).to.have.property('token');",
+              "  pm.expect(body).to.have.property('user');",
+              "  pm.collectionVariables.set('authToken', body.token);",
               "});"
             ]
           }

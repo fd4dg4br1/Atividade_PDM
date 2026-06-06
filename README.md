@@ -36,6 +36,15 @@ Resposta esperada:
 { "ok": true, "name": "gestao-financeira-api" }
 ```
 
+Login de teste:
+
+```text
+Email: aluno@pdm.com
+Senha: 123456
+```
+
+As rotas de categorias e transacoes exigem token JWT retornado em `POST /auth/login`.
+
 ## Banco
 
 O Postgres roda com:
@@ -51,3 +60,5 @@ Dentro do Docker, a API usa:
 ```text
 postgresql://postgres:postgres@postgres:5432/gestao_financeira?schema=public
 ```
+
+O container da API aplica as migrations versionadas do Prisma antes de rodar o seed.

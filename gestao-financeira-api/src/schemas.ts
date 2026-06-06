@@ -1,5 +1,10 @@
 import { z } from 'zod';
 
+export const loginSchema = z.object({
+  email: z.string().trim().email(),
+  password: z.string().min(1),
+});
+
 export const createCategorySchema = z.object({
   name: z.string().trim().min(2),
   displayName: z.string().trim().min(2),
